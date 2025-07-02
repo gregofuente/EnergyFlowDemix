@@ -51,6 +51,9 @@ import warnings
 
 from tf_keras.callbacks import ModelCheckpoint, EarlyStopping
 from tf_keras.layers import Activation, Layer, LeakyReLU, PReLU, ThresholdedReLU
+from tf_keras.models import Model
+
+from tf_keras import backend as K
 
 from energyflow.utils import iter_or_rep
 
@@ -202,13 +205,75 @@ class ArchBase(object, metaclass=ABCMeta):
             name = self.__class__.__name__
             raise AttributeError("'{}' object has no attribute '{}', ".format(name, attr)
                                  + "check of underlying model failed")
+        
+###############################################################################
+# Thin wrapper implemented using the tf_keras backend
+###############################################################################
 
+class DeMixer(Model):
+    def __init__(self, output_dim, number_cat, architecture):
+
+        # Save attributes 
+        self.output_dim = output_dim
+        self.number_cat = number_cat 
+
+        # Save inner model 
+        self.architecture = architecture
+
+        self.raw_fractions = self.add_weight(
+            shape=(output_dim, number_cat),
+            initializer="random_normal",
+            trainable=True
+        )
+
+    def call(self, inputs):
+        # Obtain outputs on inner architecture
+        # We assume that the output activation function is set to SOFTMAX
+        barycentric = self.architecture(inputs)
+
+        # Calculate the vertex matrix 
+        fractions       = K.softmax(self.raw_fractions, axis=1)
+        raw_vertices    = K.transpose(fractions)
+        denominator     = K.expand_dims(K.sum(raw_vertices, axis=1), axis=-1)
+        vertices        = raw_vertices/denominator 
+
+        # Compute and add the perimeter loss
+        A               = K.expand_dims(vertices, axis=0)
+        B               = K.expand_dims(vertices, axis=1)
+        pws_squares     = K.sum(K.square(A - B), axis=-1)
+        pws_distances   = K.sqrt(pws_squares + 1e-9)
+        edge_lengths    = 0.5*K.sum(pws_distances)
+
+        self.add_loss(0.001*edge_lengths)
+
+        # This is equivalent to tf.matmul when barycentric and vertices are 2D arrays,
+        # which they are in this case
+        outputs         = K.dot(barycentric, vertices)
+        barycentric @ vertices 
+
+        return outputs 
+        
 
 ###############################################################################
 # NNBase
 ###############################################################################
 
 class NNBase(ArchBase):
+
+    def __init__(self, *args, **kwargs):
+        '''
+        A NNBase object has the additional property that it can be demixed.
+        '''
+        # After calling ArchBase's init:
+        # 1. The hyperparameters are processed according to _process_hps
+        # 2. A _model object is constructed and compiled according to _construct_model
+        super().__init__(*args, **kwargs)
+
+        # Construct the demixer
+        if (self.mode == 'demix'):
+            self._construct_demixer()
+        else:
+            pass
 
     def _process_hps(self):
         """**Default NN Hyperparameters**
@@ -320,6 +385,17 @@ class NNBase(ArchBase):
         self.compile = self._proc_arg('compile', default=True)
         self.summary = self._proc_arg('summary', default=True)
 
+        # Number of categories (For the demixer)
+        self.number_cat = self._proc_arg('number_cat', default=self.output_dim)
+        allowed_modes   = {'demix', 'plain'}
+        self.mode       = self._proc_arg('mode', default='demix').lower()
+
+        if self.mode not in allowed_modes:
+            raise ValueError(
+                f"Unrecognised mode '{self.mode}'. "
+                f"Valid options are {sorted(allowed_modes)}."
+            )
+
     def _add_act(self, act):
 
         # handle case of act as a layer
@@ -347,7 +423,30 @@ class NNBase(ArchBase):
             if self.summary:
                 self.model.summary()
 
+    def _compile_demixer(self):
+        '''
+        Instructions to compile the demixer. In the future, might want to add different arguments for the demixer.
+        '''
+        # compile model if specified
+        if self.compile:
+            self.demixer.compile(**self.compile_opts)
+
+            # print summary
+            if self.summary:
+                self.demixer.summary()
+
+    def _construct_demixer(self):
+
+        self._demixer = DeMixer(self.output_dim, self.number_cat, self._model)
+
+        self._compile_demixer()
+
     def fit(self, *args, **kwargs):
+
+        if (self.mode == 'demix'):
+            fitTarget = self.demixer
+        else:
+            fitTarget = self.model 
 
         # list of callback functions
         callbacks = []
@@ -364,14 +463,14 @@ class NNBase(ArchBase):
         kwargs.setdefault('callbacks', []).extend(callbacks)
 
         # do the fitting
-        hist = self.model.fit(*args, **kwargs)
+        hist = fitTarget.fit(*args, **kwargs)
 
         # handle saving at the end, if we weren't already saving throughout
         if self.filepath and not self.save_while_training:
             if self.save_weights_only:
-                self.model.save_weights(self.filepath)
+                fitTarget.save_weights(self.filepath)
             else:
-                self.model.save(self.filepath)
+                fitTarget.save(self.filepath)
 
         # take out the trash
         gc.collect()
@@ -379,7 +478,13 @@ class NNBase(ArchBase):
         return hist
 
     def predict(self, *args, **kwargs):
-        return self.model.predict(*args, **kwargs)
+
+        if (self.mode == 'demix'):
+            predictTarget = self.demixer
+        else:
+            predictTarget = self.model 
+
+        return predictTarget.predict(*args, **kwargs)
 
     @property
     def model(self):
@@ -388,6 +493,14 @@ class NNBase(ArchBase):
         else:
             name = self.__class__.__name__
             raise AttributeError("'{}' object has no underlying model".format(name))
+        
+    @property
+    def demixer(self):
+        if hasattr(self, '_demixer'):
+            return self._demixer
+        else:
+            name = self.__class__.__name__
+            raise AttributeError("'{}' object has no underlying demixer".format(name))
 
 
 ###############################################################################
