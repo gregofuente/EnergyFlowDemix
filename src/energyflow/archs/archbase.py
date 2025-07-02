@@ -444,6 +444,8 @@ class NNBase(ArchBase):
 
         self._demixer = DeMixer(self.output_dim, self.number_cat, self._model)
         
+        self._demixer.build(self._model.input_shape)
+
         self._compile_demixer()
 
     def fit(self, *args, **kwargs):
