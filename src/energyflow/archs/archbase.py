@@ -251,7 +251,7 @@ class DeMixer(Model):
         pws_distances   = K.sqrt(pws_squares + 1e-9)
         edge_lengths    = 0.5*K.sum(pws_distances)
 
-        self.add_loss(lambda: 0.001*edge_lengths)
+        # self.add_loss(lambda: 0.001*edge_lengths)
 
         # This is equivalent to tf.matmul when barycentric and vertices are 2D arrays,
         # which they are in this case
