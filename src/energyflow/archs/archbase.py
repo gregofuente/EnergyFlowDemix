@@ -228,22 +228,11 @@ class DeMixer(Model):
             trainable=True
         )
 
-    # def build(self, input_shape):
-    #     #self.architecture.build(input_shape)
-    #     super().build(input_shape)
-
     def call(self, inputs):
-        # self._losses.clear()
-
         # Obtain outputs on inner architecture
         # We assume that the output activation function is set to SOFTMAX
         barycentric = self.architecture(inputs)
-
-        # Calculate the vertex matrix 
-        fractions       = K.softmax(self.raw_fractions, axis=1)
-        raw_vertices    = K.transpose(fractions)
-        denominator     = K.expand_dims(K.sum(raw_vertices, axis=1), axis=-1)
-        vertices        = raw_vertices/denominator 
+        K.print_tensor(barycentric)
 
         self.add_loss(lambda: 0.001 * perimeterLoss(self.raw_fractions))
 
