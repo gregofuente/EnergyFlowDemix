@@ -227,9 +227,9 @@ class DeMixer(Model):
             trainable=True
         )
 
-    def build(self, input_shape):
-        #self.architecture.build(input_shape)
-        super().build(input_shape)
+    # def build(self, input_shape):
+    #     #self.architecture.build(input_shape)
+    #     super().build(input_shape)
 
     def call(self, inputs):
         # Obtain outputs on inner architecture
