@@ -245,25 +245,33 @@ class DeMixer(Model):
         denominator     = K.expand_dims(K.sum(raw_vertices, axis=1), axis=-1)
         vertices        = raw_vertices/denominator 
 
-        self.add_loss(lambda: 0.001 * self._perimeter_loss(vertices))
+        self.add_loss(0.001 * perimeterLoss(self.raw_fractions))
 
         # This is equivalent to tf.matmul when barycentric and vertices are 2D arrays,
         # which they are in this case
+        vertices        = to_vertices(self.raw_fractions)
         outputs         = K.dot(barycentric, vertices)
 
         return outputs 
     
-    @staticmethod
-    def _perimeter_loss(vertices):
-        # Compute and add the perimeter loss
-        A               = K.expand_dims(vertices, axis=0)
-        B               = K.expand_dims(vertices, axis=1)
-        pws_squares     = K.sum(K.square(A - B), axis=-1)
-        pws_distances   = K.sqrt(pws_squares + 1e-9)
-        edge_lengths    = 0.5*K.sum(pws_distances)
+def to_vertices(raw_fractions):
+    # Calculate the vertex matrix 
+    fractions       = K.softmax(raw_fractions, axis=1)
+    raw_vertices    = K.transpose(fractions)
+    denominator     = K.expand_dims(K.sum(raw_vertices, axis=1), axis=-1)
+    vertices        = raw_vertices/denominator 
 
-        return edge_lengths
-        
+def perimeterLoss(raw_fractions):
+    vertices        = to_vertices(raw_fractions)
+
+    A               = K.expand_dims(vertices, axis=0)
+    B               = K.expand_dims(vertices, axis=1)
+    pws_squares     = K.sum(K.square(A - B), axis=-1)
+    pws_distances   = K.sqrt(pws_squares + 1e-9)
+    edge_lengths    = 0.5*K.sum(pws_distances)
+
+    return edge_lengths
+
 
 ###############################################################################
 # NNBase
