@@ -54,6 +54,7 @@ from tf_keras.layers import Activation, Layer, LeakyReLU, PReLU, ThresholdedReLU
 from tf_keras.models import Model
 
 from tf_keras import backend as K
+from tf_keras.losses import Loss
 
 from energyflow.utils import iter_or_rep
 
@@ -244,6 +245,16 @@ class DeMixer(Model):
         denominator     = K.expand_dims(K.sum(raw_vertices, axis=1), axis=-1)
         vertices        = raw_vertices/denominator 
 
+        self.add_loss(lambda: 0.001 * self._perimeter_loss(vertices))
+
+        # This is equivalent to tf.matmul when barycentric and vertices are 2D arrays,
+        # which they are in this case
+        outputs         = K.dot(barycentric, vertices)
+
+        return outputs 
+    
+    @staticmethod
+    def _perimeter_loss(vertices):
         # Compute and add the perimeter loss
         A               = K.expand_dims(vertices, axis=0)
         B               = K.expand_dims(vertices, axis=1)
@@ -251,13 +262,7 @@ class DeMixer(Model):
         pws_distances   = K.sqrt(pws_squares + 1e-9)
         edge_lengths    = 0.5*K.sum(pws_distances)
 
-        # self.add_loss(lambda: 0.001*edge_lengths)
-
-        # This is equivalent to tf.matmul when barycentric and vertices are 2D arrays,
-        # which they are in this case
-        outputs         = K.dot(barycentric, vertices)
-
-        return outputs 
+        return edge_lengths
         
 
 ###############################################################################
