@@ -261,6 +261,8 @@ def to_vertices(raw_fractions):
     denominator     = K.expand_dims(K.sum(raw_vertices, axis=1), axis=-1)
     vertices        = raw_vertices/denominator 
 
+    return vertices
+
 def perimeterLoss(raw_fractions):
     vertices        = to_vertices(raw_fractions)
 
