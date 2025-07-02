@@ -233,7 +233,7 @@ class DeMixer(Model):
     #     super().build(input_shape)
 
     def call(self, inputs):
-        self._losses.clear()
+        # self._losses.clear()
 
         # Obtain outputs on inner architecture
         # We assume that the output activation function is set to SOFTMAX
