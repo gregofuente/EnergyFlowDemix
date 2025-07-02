@@ -231,6 +231,9 @@ class DeMixer(Model):
 
     def getFractions(self):
         return K.softmax(self.raw_fractions, axis=1)
+    
+    def getVertices(self):
+        return to_vertices(self.raw_fractions)
 
     def call(self, inputs):
         # Obtain outputs on inner architecture
