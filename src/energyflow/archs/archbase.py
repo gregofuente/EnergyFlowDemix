@@ -254,7 +254,6 @@ class DeMixer(Model):
         # This is equivalent to tf.matmul when barycentric and vertices are 2D arrays,
         # which they are in this case
         outputs         = K.dot(barycentric, vertices)
-        barycentric @ vertices 
 
         return outputs 
         
@@ -436,15 +435,15 @@ class NNBase(ArchBase):
         if self.compile:
             self.demixer.compile(**self.compile_opts)
 
-            # print summary
-            if self.summary:
-                self.demixer.summary()
+            # # print summary
+            # if self.summary:
+            #     self.demixer.summary()
 
     def _construct_demixer(self):
 
         self._demixer = DeMixer(self.output_dim, self.number_cat, self._model)
         
-        self._demixer.build(self._model.input_shape)
+        # self._demixer.build(self._model.input_shape)
 
         self._compile_demixer()
 
