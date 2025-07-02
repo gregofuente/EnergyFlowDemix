@@ -232,7 +232,6 @@ class DeMixer(Model):
         # Obtain outputs on inner architecture
         # We assume that the output activation function is set to SOFTMAX
         barycentric = self.architecture(inputs)
-        K.print_tensor(barycentric)
 
         self.add_loss(lambda: 0.001 * perimeterLoss(self.raw_fractions))
 
