@@ -211,7 +211,8 @@ class ArchBase(object, metaclass=ABCMeta):
 ###############################################################################
 
 class DeMixer(Model):
-    def __init__(self, output_dim, number_cat, architecture):
+    def __init__(self, output_dim, number_cat, architecture, **kwargs):
+        super().__init__(**kwargs)
 
         # Save attributes 
         self.output_dim = output_dim
