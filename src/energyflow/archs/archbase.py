@@ -245,7 +245,7 @@ class DeMixer(Model):
         denominator     = K.expand_dims(K.sum(raw_vertices, axis=1), axis=-1)
         vertices        = raw_vertices/denominator 
 
-        self.add_loss(0.001 * perimeterLoss(self.raw_fractions))
+        self.add_loss(lambda: 0.001 * perimeterLoss(self.raw_fractions))
 
         # This is equivalent to tf.matmul when barycentric and vertices are 2D arrays,
         # which they are in this case
