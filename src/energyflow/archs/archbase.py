@@ -447,7 +447,7 @@ class NNBase(ArchBase):
 
     def _construct_demixer(self):
 
-        self._demixer = DeMixer(self.output_dim, self.number_cat, self._model)
+        self._demixer = DeMixer(output_dim=self.output_dim, number_cat=self.number_cat, architecture=self.model)
         
         # self._demixer.build(self._model.input_shape)
 
