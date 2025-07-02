@@ -227,6 +227,10 @@ class DeMixer(Model):
             trainable=True
         )
 
+    def build(self, input_shape):
+        self.architecture.build(input_shape)
+        super().build(input_shape)
+
     def call(self, inputs):
         # Obtain outputs on inner architecture
         # We assume that the output activation function is set to SOFTMAX
@@ -439,6 +443,9 @@ class NNBase(ArchBase):
     def _construct_demixer(self):
 
         self._demixer = DeMixer(self.output_dim, self.number_cat, self._model)
+        
+        # Need to build the model because using subclassing API
+        self._demixer.build(self._model.input_shape)
 
         self._compile_demixer()
 
