@@ -212,12 +212,13 @@ class ArchBase(object, metaclass=ABCMeta):
 ###############################################################################
 
 class DeMixer(Model):
-    def __init__(self, output_dim, number_cat, architecture, **kwargs):
+    def __init__(self, output_dim, number_cat, alpha, architecture, **kwargs):
         super().__init__(**kwargs)
 
         # Save attributes 
         self.output_dim = output_dim
         self.number_cat = number_cat 
+        self.alpha      = alpha 
 
         # Save inner model 
         self.architecture = architecture
@@ -228,12 +229,15 @@ class DeMixer(Model):
             trainable=True
         )
 
+    def getFractions(self):
+        return K.softmax(self.raw_fractions, axis=1)
+
     def call(self, inputs):
         # Obtain outputs on inner architecture
         # We assume that the output activation function is set to SOFTMAX
         barycentric = self.architecture(inputs)
 
-        self.add_loss(lambda: 0.001 * perimeterLoss(self.raw_fractions))
+        self.add_loss(lambda: self.alpha * perimeterLoss(self.raw_fractions))
 
         # This is equivalent to tf.matmul when barycentric and vertices are 2D arrays,
         # which they are in this case
@@ -398,6 +402,7 @@ class NNBase(ArchBase):
         self.number_cat = self._proc_arg('number_cat', default=self.output_dim)
         allowed_modes   = {'demix', 'plain'}
         self.mode       = self._proc_arg('mode', default='demix').lower()
+        self.alpha      = self._proc_arg('alpha', default=0.0001)
 
         if self.mode not in allowed_modes:
             raise ValueError(
@@ -446,7 +451,7 @@ class NNBase(ArchBase):
 
     def _construct_demixer(self):
 
-        self._demixer = DeMixer(output_dim=self.output_dim, number_cat=self.number_cat, architecture=self.model)
+        self._demixer = DeMixer(output_dim=self.output_dim, number_cat=self.number_cat, alpha=self.alpha, architecture=self.model)
         
         # self._demixer.build(self._model.input_shape)
 
