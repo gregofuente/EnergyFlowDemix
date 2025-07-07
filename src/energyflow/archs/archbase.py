@@ -414,6 +414,13 @@ class NNBase(ArchBase):
                 f"Unrecognised mode '{self.mode}'. "
                 f"Valid options are {sorted(allowed_modes)}."
             )
+        
+        # Update output_dim to ensure correct output dimension of the inner model
+        if (self.mode == 'demix'):
+            self.demixer_output_dim     = self.output_dim
+            self.output_dim             = self.number_cat
+        else:
+            pass
 
     def _add_act(self, act):
 
@@ -456,7 +463,7 @@ class NNBase(ArchBase):
 
     def _construct_demixer(self):
 
-        self._demixer = DeMixer(output_dim=self.output_dim, number_cat=self.number_cat, alpha=self.alpha, architecture=self.model)
+        self._demixer = DeMixer(output_dim=self.demixer_output_dim, number_cat=self.number_cat, alpha=self.alpha, architecture=self.model)
         
         # self._demixer.build(self._model.input_shape)
 
