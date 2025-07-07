@@ -225,7 +225,8 @@ class DeMixer(Model):
 
         self.raw_fractions = self.add_weight(
             shape=(output_dim, number_cat),
-            initializer="random_normal",
+            #initializer="random_normal",
+            initializer=K.eye(output_dim)[:, :number_cat],
             trainable=True
         )
 
