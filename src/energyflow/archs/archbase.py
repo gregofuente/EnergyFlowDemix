@@ -55,6 +55,7 @@ from tf_keras.models import Model
 
 from tf_keras import backend as K
 from tf_keras.losses import Loss
+from tf_keras.initializers import Constant
 
 from energyflow.utils import iter_or_rep
 
@@ -226,7 +227,7 @@ class DeMixer(Model):
         self.raw_fractions = self.add_weight(
             shape=(output_dim, number_cat),
             #initializer="random_normal",
-            initializer=K.eye(output_dim)[:, :number_cat],
+            initializer=Constant(K.eye(output_dim)[:, :number_cat]),
             trainable=True
         )
 
